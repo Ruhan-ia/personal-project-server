@@ -26,7 +26,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const toysDetails = client.db('toysDB').collection('toys');
-    
+    const userDetails = client.db('toysDB').collection('user');
    app.get('/details', async(req, res) =>{
     const result = await toysDetails.find().toArray();
     res.send(result)
@@ -38,6 +38,27 @@ async function run() {
     const detailsCar =await toysDetails.findOne(query)
     res.send(detailsCar)
 })
+
+  app.get('/dashBoard/user', async(req, res)=>{
+    const result = await userDetails.find().toArray();
+    res.send(result)
+  })
+  app.get('/dashBoard/user', async(req, res) =>{
+    const query ={email:user.email};
+
+    const result = await userDetails.findOne(query)
+    res.send(result)
+  })
+  app.post('/dashBoard/user', async(req, res)=>{
+    const user = req.body;
+    const query ={email:user.email};
+    const existingUser = await userDetails.findOne(query)
+    if(existingUser){
+      return res.send({message:"user already exist"})
+    }
+    const result = await userDetails.insertOne(user)
+     res.send(result)
+  })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
