@@ -27,6 +27,7 @@ async function run() {
     await client.connect();
     const toysDetails = client.db('toysDB').collection('toys');
     const userDetails = client.db('toysDB').collection('user');
+    const cartsDetails = client.db('toysDB').collection('carts');
    app.get('/details', async(req, res) =>{
     const result = await toysDetails.find().toArray();
     res.send(result)
@@ -39,14 +40,10 @@ async function run() {
     res.send(detailsCar)
 })
 
+// users collection
+
   app.get('/dashBoard/user', async(req, res)=>{
     const result = await userDetails.find().toArray();
-    res.send(result)
-  })
-  app.get('/dashBoard/user', async(req, res) =>{
-    const query ={email:user.email};
-
-    const result = await userDetails.findOne(query)
     res.send(result)
   })
   app.post('/dashBoard/user', async(req, res)=>{
@@ -58,6 +55,39 @@ async function run() {
     }
     const result = await userDetails.insertOne(user)
      res.send(result)
+  })
+  app.delete('/dashBoard/user/:id', async (req, res) =>{
+    const id = req.params.id;
+    const query = {_id: new ObjectId(id)};
+    console.log(id)
+    const result = await userDetails.deleteOne(query);
+    res.send(result);
+  })
+
+  // cart collection
+  app.get('/dashBoard/carts', async(req, res) =>{
+    const email =req.query.email;
+    console.log(email)
+    if(!email){
+      return res.send([])
+    }
+    const query = {email: email}
+    const result= await cartsDetails.find(query).toArray();
+    res.send(result)
+  })
+  app.post('/dashBoard/carts', async (req, res)=>{
+    const item = req.body;
+    console.log(item);
+    const result = await cartsDetails.insertOne(item)
+    res.send(result)
+  })
+
+  app.delete('/dashBoard/carts/:id', async (req, res) =>{
+    const id = req.params.id;
+    const query = {_id: new ObjectId(id)};
+    console.log(id)
+    const result = await cartsDetails.deleteOne(query);
+    res.send(result);
   })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
