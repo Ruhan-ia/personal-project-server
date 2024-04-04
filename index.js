@@ -50,6 +50,11 @@ async function run() {
     console.log(result)
     res.send(result)
    })
+   app.post('/details', verifyJWT, verifyAdmin, async(req, res)=>{
+    const image = req.body;
+    const result = await toysDetails.insertOne(image)
+    res.send(result)
+   })
    app.get('/details/:id', async(req, res)=>{
     const id = req.params.id;
     const query = {_id: new ObjectId(id)}
@@ -64,11 +69,32 @@ app.post('/jwt', (req, res)=>{
   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' } )
   res.send({token})
 })
+
+const verifyAdmin = async(req, res, next) =>{
+  const email = req.decode.email;
+  const query = { email:email };
+  const user = await userDetails.findOne(query);
+  if(user?.role !== 'admin'){
+   return res.status(403).send({error: true, message:'forbidden user'})
+  }
+  next();
+}
 // users collection
 
-  app.get('/dashBoard/user', async(req, res)=>{
+  app.get('/dashBoard/user', verifyJWT, verifyAdmin,  async(req, res)=>{
     const result = await userDetails.find().toArray();
     res.send(result)
+  })
+  app.get('/dashBoard/user/admin/:email', verifyJWT, async(req, res) =>{
+    const email = req.params.email;
+    if(email !== req.decode.email){
+      res.send({admin:false});
+    }
+    const query = { email: email }
+    const user = await userDetails.findOne(query);
+    const result = {admin: user?.role === 'admin'};
+    res.send(result)
+
   })
   app.post('/dashBoard/user', async(req, res)=>{
     const user = req.body;
