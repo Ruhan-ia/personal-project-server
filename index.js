@@ -45,24 +45,7 @@ async function run() {
     const toysDetails = client.db('toysDB').collection('toys');
     const userDetails = client.db('toysDB').collection('user');
     const cartsDetails = client.db('toysDB').collection('carts');
-   app.get('/details', async(req, res) =>{
-    const result = await toysDetails.find().toArray();
-    console.log(result)
-    res.send(result)
-   })
-   app.post('/details', verifyJWT, verifyAdmin, async(req, res)=>{
-    const image = req.body;
-    const result = await toysDetails.insertOne(image)
-    res.send(result)
-   })
-   app.get('/details/:id', async(req, res)=>{
-    const id = req.params.id;
-    const query = {_id: new ObjectId(id)}
-    console.log(id)
-    const detailsCar =await toysDetails.findOne(query)
-    res.send(detailsCar)
-})
-// JWT
+    // JWT
 
 app.post('/jwt', (req, res)=>{
   const user = req.body;
@@ -79,6 +62,24 @@ const verifyAdmin = async(req, res, next) =>{
   }
   next();
 }
+   app.get('/details', async(req, res) =>{
+    const result = await toysDetails.find().toArray();
+    console.log(result)
+    res.send(result)
+   })
+   app.post('/details',  verifyJWT, verifyAdmin, async(req, res)=>{
+    const image = req.body;
+    const result = await toysDetails.insertOne(image)
+    res.send(result)
+   })
+   app.get('/details/:id', async(req, res)=>{
+    const id = req.params.id;
+    const query = {_id: new ObjectId(id)}
+    console.log(id)
+    const detailsCar =await toysDetails.findOne(query)
+    res.send(detailsCar)
+})
+
 // users collection
 
   app.get('/dashBoard/user', verifyJWT, verifyAdmin,  async(req, res)=>{
