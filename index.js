@@ -46,6 +46,7 @@ async function run() {
     const toysDetails = client.db('toysDB').collection('toys');
     const userDetails = client.db('toysDB').collection('user');
     const cartsDetails = client.db('toysDB').collection('carts');
+    const paymentDetails = client.db('toysDB').collection('payments');
     // JWT
 
 app.post('/jwt', (req, res)=>{
@@ -171,7 +172,101 @@ const verifyAdmin = async(req, res, next) =>{
 
     res.send({
       clientSecret: paymentIntent.client_secret,
+    });
+  })
+
+  // payment api
+  app.get('/payments/:email', verifyJWT, async(req, res)=>{
+    const query = {email: req.params.email};
+    if(req.params.email !== req.decode.email){
+      return res.status(403).send({message:'forbidden access'})
+    }
+    const result = await paymentDetails.find(query).toArray();
+    res.send(result);
+  })
+
+  app.post('/payments', async (req, res) =>{
+    const payment = req.body;
+    const result = await paymentDetails.insertOne(payment);
+    const query = {_id:
+      {
+          $in: payment.cartIds.map(id => new ObjectId(id))
+      }
+    };
+    const deletedResult = await cartsDetails.deleteMany(query);
+
+    res.send({result, deletedResult});
+  })
+
+  // admin-stats
+
+  app.get('/admin-stats', verifyJWT, verifyAdmin, async(req, res)=>{
+
+    const user = await userDetails.estimatedDocumentCount();
+    const products = await toysDetails.estimatedDocumentCount();
+    const order = await paymentDetails.estimatedDocumentCount();
+
+    const result = await paymentDetails.aggregate([
+      {
+        $group:{
+          _id: null,
+          totalRevenue: {
+            $sum: '$price'
+          }
+        }
+      } ,
+    ]).toArray();
+
+    const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+    res.send({
+      user , 
+      products,
+      order,
+      revenue
     })
+  })
+
+  // order stats
+  app.get('/order-stats', verifyJWT, verifyAdmin, async(req, res)=>{
+    const result = await paymentDetails.aggregate([
+
+      {
+        $unwind:'$toyIds'
+      },
+      {
+        $lookup:{
+          from:'toys',
+          localField:'toyIds',
+          foreignField:'name',
+          as:'toy',
+           
+        }
+        
+      },
+      {
+        $unwind:'$toy'
+      },
+      {
+        $group:{
+          _id:'$toy.brand',
+          quantity:{ $sum: 1 },
+          revenue:{ $sum: '$toy.price'}
+        }
+      },
+      {
+        $project:{
+          _id:0,
+          Brand:'$_id',
+          Quantity:'$quantity',
+          Revenue:'$revenue'
+        }
+      }
+
+   
+      
+    ]).toArray();
+    res.send(result);
   })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
